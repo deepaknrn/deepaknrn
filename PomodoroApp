@@ -1,0 +1,90 @@
+import tkinter
+import math
+
+# ---------------------------- CONSTANTS ------------------------------- #
+PINK = "#e2979c"
+RED = "#e7305b"
+GREEN = "#9bdeac"
+YELLOW = "#f7f5dd"
+FONT_NAME = "Courier"
+WORK_MIN = 25
+SHORT_BREAK_MIN = 5
+LONG_BREAK_MIN = 20
+reps=0
+timer=None 
+
+
+# ---------------------------- TIMER RESET ------------------------------- # 
+
+def reset_timer():
+  window.after_cancel(timer)
+  canvas.itemconfig(timer_text,text=f"00:00")
+  title_label.config(text="TIMER")
+  global check_mark
+  check_mark=""
+  check_label.config(text="")
+
+# ---------------------------- TIMER MECHANISM ------------------------------- # 
+
+# ---------------------------- COUNTDOWN MECHANISM ------------------------------- # 
+
+def count_down(count):
+  count_min=math.floor(count/60)
+  count_sec=count%60
+  if count_sec==0:
+    count_sec="00"
+  if len(str(count_sec))==1:
+    count_sec=("0" + str(count_sec))
+  canvas.itemconfig(timer_text,text=f"{count_min}:{count_sec}")
+  if count>0:
+    global timer
+    timer=window.after(1000,count_down,count-1)
+  else:
+    start_time()
+
+# ---------------------------- UI SETUP ------------------------------- #
+
+window=tkinter.Tk()
+window.title("Pomodoro")
+window.minsize(width="300",height="300")
+window.config(bg="#9bdeac")
+
+title_label = tkinter.Label(text="TIMER", font=(FONT_NAME,20,"bold"),fg="#9bdeac",highlightthickness=0)
+title_label.grid(column=5,row=1)
+
+check_label = tkinter.Label(text="", font=(FONT_NAME,20,"bold"),fg="#9bdeac",highlightthickness=0)
+check_label.grid(column=5,row=10)
+check_mark=""
+
+
+def start_time():
+    global reps 
+    global check_mark
+    reps=reps+1
+    if reps in (1,3,5,7): #each countdown
+      check_mark=check_mark + "✔️"
+      title_label.config(text="WORK")
+      count_down(10)
+    elif reps in (2,4,6): #go for a short break
+      check_label.config(text=f"{check_mark}")
+      title_label.config(text="SHORT BREAK")
+      count_down(5)
+    else: #go for a long break
+      title_label.config(text="LONG BREAK")
+      count_down(240)
+
+#calls action() when pressed
+button = tkinter.Button(text="Start", command=start_time,highlightthickness=0)
+button.grid(column=2,row=10)
+
+button = tkinter.Button(text="Reset", command=reset_timer,highlightthickness=0)
+button.grid(column=10,row=10)
+
+canvas=tkinter.Canvas(width="300",height="300",bg="#9bdeac",highlightthickness=0)
+tomato_img=tkinter.PhotoImage(file="tomato.png")
+canvas.create_image(150,180,image=tomato_img)
+timer_text=canvas.create_text(150,180,text="00:00",fill="White",font=(FONT_NAME,20,"bold"))
+canvas.grid(column=5,row=8)
+
+
+window.mainloop()
