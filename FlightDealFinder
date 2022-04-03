@@ -1,0 +1,140 @@
+#This file will need to use the DataManager,FlightSearch, FlightData, NotificationManager classes to achieve the program requirements.
+
+import requests
+from pprint import pprint #Formatting using prettyprint
+from flight.flight_search import FlightSearch
+from flight.data_manager import DataManager
+from datetime import datetime,timedelta
+
+#2. Now use the Sheety API to GET all the data in that sheet and print it out. You should see something like this:
+
+Sheety_URL="https://api.sheety.co/926a64abed2af1bb25e75be56f3c0bef/flightDealsCopy/prices"
+Sheety_Header={"Authorization": "Bearer jfgfhk54"}
+
+#sheety_response=requests.get(url=Sheety_URL,headers=Sheety_Header)
+#sheety_response.raise_for_status()
+#sheety_status_code=sheety_response.status_code
+#print("API Response code:" + str(sheety_status_code))
+#sheety_json=sheety_response.json()
+sheety_json=[{'city': 'Paris', 'iataCode': '', 'id': 2, 'lowestPrice': 54},
+ {'city': 'Berlin', 'iataCode': '', 'id': 3, 'lowestPrice': 42},
+ {'city': 'Tokyo', 'iataCode': '', 'id': 4, 'lowestPrice': 485},
+ {'city': 'Sydney', 'iataCode': '', 'id': 5, 'lowestPrice': 551},
+ {'city': 'Istanbul', 'iataCode': '', 'id': 6, 'lowestPrice': 95},
+ {'city': 'Kuala Lumpur', 'iataCode': '', 'id': 7, 'lowestPrice': 414},
+ {'city': 'New York', 'iataCode': '', 'id': 8, 'lowestPrice': 240},
+ {'city': 'San Francisco', 'iataCode': '', 'id': 9, 'lowestPrice': 260},
+ {'city': 'Cape Town', 'iataCode': '', 'id': 10, 'lowestPrice': 378}]
+print("Sheety Data in Json Format: \n")
+
+# 3. Try importing pretty print with the line from pprint import pprint and printing the data out again using pprint() to see it formatted.
+#pprint(sheety_json)
+
+#4.Pass everything stored in the "prices" key back to the main.py file and store it in a variable called sheet_data, so that you can print the sheet_data from main.py
+#sheet_data=sheety_json["prices"]
+sheet_data=sheety_json
+pprint(sheet_data)
+
+# 5. In main.py check if sheet_data contains any values for the "iataCode" key. If not, then the IATA Codes column is empty in the Google Sheet. In this case, pass each city name in sheet_data one-by-one to the FlightSearch class. For now, the FlightSearch class can respond with "TESTING" instead of a real IATA code. You should use the response from the FlightSearch class to update the sheet_data dictionary.
+
+Flight_obj=[]
+Flight_list_Test=[]
+
+for item in sheet_data:
+  if item["iataCode"]=='':
+    FlightSearch_obj=FlightSearch(item)
+    Flight_obj.append(FlightSearch_obj)
+
+i=0
+for i in range(len(Flight_obj)):
+  Flight_list_Test.append(Flight_obj[i].item1)
+
+print("Add Testing Keyword to IATA code \n")
+pprint(Flight_list_Test)
+
+# #6. In the DataManager Class make a PUT request and use the row id  from sheet_data to update the Google Sheet with the IATA codes. (Do this using code). HINT: Remember to check the checkbox to allow PUT requests in Sheety.
+
+row_id_list=[]
+
+for row_id in Flight_list_Test:
+  row_id_list.append(row_id["id"])
+
+#datamanager_obj=DataManager(row_id_list)
+
+# Step 3 - Get the IATA Codes using the Kiwi Partners API
+
+TEQUILA_ENDPOINT = "https://tequila-api.kiwi.com/locations/query"
+TEQUILA_API_KEY = "kUkqbc8U5stmYMbWTC2rXg4cgLoLG5Y7"
+TEQUILA_Header={"apikey":TEQUILA_API_KEY}
+city1=""
+
+Flight_list_IATA=[]
+
+for city in Flight_list_Test:
+    city1=city["city"]
+    paramters={"term":city1,"location_types":"city"}
+    tequila_get=requests.get(url=TEQUILA_ENDPOINT,headers=TEQUILA_Header,params=paramters)
+    tequila_get.raise_for_status()
+    tequilta_response=tequila_get.json()
+    iataCode=tequilta_response["locations"][0]["code"]
+    Flight_list_IATA.append({"city":city1,"iataCode":iataCode,"id":city["id"],"lowestPrice":city["lowestPrice"]})
+
+print("Add Correct IATACode to IATA code \n")
+pprint(Flight_list_IATA)
+
+iata_code_list=[]
+
+for iata_code in Flight_list_IATA:
+  iata_code_list.append(iata_code["iataCode"])
+
+print(iata_code_list)
+#datamanageriata_obj=DataManager(iata_code_list,row_id_list)
+
+
+# Step 4 - Search for Cheap Flights
+# Searching for Flights
+# The next step is to search for the flight prices from London (LON) to all the destinations in the Google Sheet. In this project, we're looking only for direct flights, that leave anytime between tomorrow and in 6 months (6x30days) time. We're also looking for round trips that return between 7 and 28 days in length. The currency of the price we get back should be in GBP.
+
+tomorrow=datetime.now() + timedelta(days=1)
+tomorrow_f=tomorrow.strftime("%d/%m/%Y")
+months_6=datetime.now() + timedelta(days = 120)
+months_6f=months_6.strftime("%d/%m/%Y")
+
+#print(tomorrow_f)
+#print(months_6f)
+
+flight_search_url="https://tequila-api.kiwi.com/v2/search"
+
+price_list_iata=[]
+
+for ic in iata_code_list:
+  flight_search_params={
+  "fly_from":"LON",
+  "fly_to":ic,
+  "date_from": tomorrow_f,
+  "date_to": months_6f,
+  "nights_in_dst_from": 7,
+  "nights_in_dst_to": 28,
+  "flight_type": "round",
+  "max_stopovers": 3,
+  "curr": "GBP"
+  }
+  flight_search_header={
+  "apikey":"kUkqbc8U5stmYMbWTC2rXg4cgLoLG5Y7"
+  }
+
+  flight_search_response=requests.get(url=flight_search_url,headers=flight_search_header,params=flight_search_params)
+  flight_search_response.raise_for_status()
+  flight_search_data=(flight_search_response.json())
+  #print("Flights between LON & " + ic + ("\n"))
+  price_list_iata.append(flight_search_data["data"][0]["price"])
+
+
+pprint(Flight_list_IATA)
+print(price_list_iata)
+
+i=0
+for item in Flight_list_IATA:
+  if item["lowestPrice"]>=price_list_iata[i]:
+    print(item["city"]+"has lower price") 
+  i=i+1
