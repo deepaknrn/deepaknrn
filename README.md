@@ -1,6 +1,6 @@
 - 👋 Hi, I’m @deepaknrn
 - 👀 I’m interested in ETL, Big Data and Python Programming 
-- 🌱 I’m currently learning Python & Scala
+- 🌱 I’m currently learning Python , Spark & Scala .
 - 💞️ I’m looking to collaborate on Data Science.
 - 📫 How to reach me deepaknrn@gmail.com
 
